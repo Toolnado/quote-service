@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Toolnado/quote-service.git/internal/types"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,10 +19,13 @@ const (
 )
 
 type Source struct {
+	l2BySymbol map[string]*L2OrderBook
 }
 
 func NewSource() *Source {
-	return &Source{}
+	return &Source{
+		l2BySymbol: make(map[string]*L2OrderBook),
+	}
 }
 
 func (s *Source) Start(ctx context.Context) {
@@ -89,9 +93,44 @@ func (s *Source) receiveData(ctx context.Context) error {
 }
 
 func (s *Source) onSnapshot(data []byte) error {
+	var snapshot WsL2Snapshot
+	if err := json.Unmarshal(data, &snapshot); err != nil {
+		return err
+	}
+
+	l2 := NewL2OrderBook()
+	s.l2BySymbol[snapshot.Params.Symbol] = l2
+
+	for _, updates := range [][]*WsL2Item{
+		snapshot.Payload.Snapshot,
+		snapshot.Payload.Updates} {
+		for _, item := range updates {
+			side := types.SideFromString(item.Side)
+			tm := time.Unix(0, item.Timestamp)
+			l2.Apply(item.Price, side, item.Volume, tm)
+		}
+	}
+
+	fmt.Printf("snapshot applied: bid=%d, ask=%d\n", l2.bid.Len(), l2.ask.Len())
 	return nil
 }
 
 func (s *Source) onUpdate(data []byte) error {
+	var update WsL2Update
+	if err := json.Unmarshal(data, &update); err != nil {
+		return err
+	}
+
+	l2, ok := s.l2BySymbol[update.Params.Symbol]
+
+	if !ok {
+		log.Printf("inconsistent update for %s", update.Params.Symbol)
+		return nil
+	}
+	side := types.SideFromString(update.Payload.Side)
+	tm := time.Unix(0, update.Payload.Timestamp)
+	l2.Apply(update.Payload.Price, side, update.Payload.Volume, tm)
+
+	fmt.Printf("update applied: bid=%d, ask=%d\n", l2.bid.Len(), l2.ask.Len())
 	return nil
 }

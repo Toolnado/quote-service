@@ -1,2 +1,6 @@
+github.com/HuKeping/rbtree v1.0.1 h1:u14dQbBeFlc8PAnyyaKmY6BLnjgR2Eq/VWE2pB20hZc=
+github.com/HuKeping/rbtree v1.0.1/go.mod h1:2BStWbEvbyeaetkzQ+piwA6EGTmTgX7tal0dLYprQ0w=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/shopspring/decimal v1.2.0 h1:abSATXmQEYyShuxI4/vyW3tV1MrKAJzCZ/0zLUXYbsQ=
+github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
