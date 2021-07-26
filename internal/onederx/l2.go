@@ -43,12 +43,22 @@ func (ob *L2OrderBook) Apply(price decimal.Decimal, side types.SideType, volume 
 
 func (ob *L2OrderBook) GetBid(size int) []*types.L2OrderBookItem {
 	ret := make([]*types.L2OrderBookItem, 0, size)
-
+	ob.bid.Descend(ob.bid.Max(), func(item rbtree.Item) bool {
+		itemCopy := types.L2OrderBookItem(*item.(*L2OrderBookItem))
+		ret = append(ret, &itemCopy)
+		size--
+		return size != 0
+	})
 	return ret
 }
 
 func (ob *L2OrderBook) GetAsk(size int) []*types.L2OrderBookItem {
 	ret := make([]*types.L2OrderBookItem, 0, size)
-
+	ob.bid.Descend(ob.bid.Min(), func(item rbtree.Item) bool {
+		itemCopy := types.L2OrderBookItem(*item.(*L2OrderBookItem))
+		ret = append(ret, &itemCopy)
+		size--
+		return size != 0
+	})
 	return ret
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/Toolnado/quote-service.git/internal/types"
@@ -19,6 +20,7 @@ const (
 )
 
 type Source struct {
+	sync.RWMutex
 	l2BySymbol map[string]*L2OrderBook
 }
 
@@ -28,20 +30,38 @@ func NewSource() *Source {
 	}
 }
 
-func (s *Source) Start(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Printf("source stopped: context cancelled")
-			return
-		default:
-			if err := s.receiveData(ctx); err != nil {
-				log.Printf("sleep for %v", defaultRetryInterval)
-				time.Sleep(defaultRetryInterval)
-			}
-		}
+func (s *Source) GetL2OrderBook(symbol string, size int) (*types.L2OrderBook, error) {
+	s.RLock()
+	defer s.RUnlock()
 
+	l2, ok := s.l2BySymbol[symbol]
+
+	if !ok {
+		return nil, fmt.Errorf("no data for %s", symbol)
 	}
+
+	return &types.L2OrderBook{
+		Bid: l2.GetBid(size),
+		Ask: l2.GetAsk(size),
+	}, nil
+}
+
+func (s *Source) Start(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Printf("source stopped: context cancelled")
+				return
+			default:
+				if err := s.receiveData(ctx); err != nil {
+					log.Printf("sleep for %v", defaultRetryInterval)
+					time.Sleep(defaultRetryInterval)
+				}
+			}
+
+		}
+	}()
 }
 
 func (s *Source) receiveData(ctx context.Context) error {
@@ -93,6 +113,9 @@ func (s *Source) receiveData(ctx context.Context) error {
 }
 
 func (s *Source) onSnapshot(data []byte) error {
+	s.Lock()
+	defer s.Unlock()
+
 	var snapshot WsL2Snapshot
 	if err := json.Unmarshal(data, &snapshot); err != nil {
 		return err
@@ -116,6 +139,9 @@ func (s *Source) onSnapshot(data []byte) error {
 }
 
 func (s *Source) onUpdate(data []byte) error {
+	s.Lock()
+	defer s.Unlock()
+
 	var update WsL2Update
 	if err := json.Unmarshal(data, &update); err != nil {
 		return err

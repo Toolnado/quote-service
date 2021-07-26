@@ -1,0 +1,27 @@
+syntax ="proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package="../api";
+
+message L2OrderBookRequest{
+    string symbol = 1;
+    uint32 size = 2;
+    uint32 interval = 3;
+}
+
+message L2OrderBookItem{
+    string price = 1;
+    uint64 volume = 2;
+}
+
+message L2OrderBook{
+    string symbol = 1;
+    repeated L2OrderBookItem bid = 2;
+    repeated L2OrderBookItem ask = 3;
+    google.protobuf.Timestamp time =4;
+}
+
+service Quotes{
+    rpc GetL2OrderBook (L2OrderBookRequest) returns (stream L2OrderBook){}
+}
